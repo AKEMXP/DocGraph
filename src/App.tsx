@@ -8,7 +8,7 @@ import { StudyDocuments } from './pages/StudyDocuments';
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/DocGraph">
       <Layout>
         <Routes>
           <Route path="/" element={<Dashboard />} />
