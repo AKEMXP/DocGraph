@@ -1,0 +1,154 @@
+import { memo } from 'react';
+import { Handle, Position } from '@xyflow/react';
+import { FileText, CheckCircle, Clock, Edit3, Paperclip, Cloud, CloudOff, RefreshCw, AlertTriangle, AlertCircle } from 'lucide-react';
+import type { SummaryDocument, VeevaSyncStatus } from '../data/mockData';
+import type { HighlightState } from '../utils/highlightColors';
+import { highlightColors } from '../utils/highlightColors';
+
+interface SummaryDocNodeProps {
+  data: {
+    document: SummaryDocument;
+    isFocused: boolean;
+    highlightState: HighlightState;
+    onClick: () => void;
+  };
+}
+
+const getVeevaSyncIcon = (status?: VeevaSyncStatus) => {
+  switch (status) {
+    case 'synced':
+      return <Cloud className="w-3 h-3 text-emerald-500" />;
+    case 'syncing':
+      return <RefreshCw className="w-3 h-3 text-blue-500 animate-spin" />;
+    case 'pending_upload':
+      return <Cloud className="w-3 h-3 text-amber-500" />;
+    case 'conflict':
+      return <AlertTriangle className="w-3 h-3 text-red-500" />;
+    case 'not_synced':
+      return <CloudOff className="w-3 h-3 text-slate-400" />;
+    default:
+      return <CloudOff className="w-3 h-3 text-slate-300" />;
+  }
+};
+
+export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocNodeProps) {
+  const { document, isFocused, highlightState, onClick } = data;
+  const hasPendingUpdates = document.pendingUpdates && document.pendingUpdates.length > 0;
+
+  const colors = highlightColors[highlightState];
+  const isActive = highlightState !== 'default';
+  const accentColor = isActive ? colors.border : '#64748b';
+
+  const getStatusIcon = () => {
+    switch (document.status) {
+      case 'approved':
+      case 'final':
+        return <CheckCircle className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-500' : 'text-slate-400'}`} />;
+      case 'in_review':
+        return <Clock className={`w-3.5 h-3.5 ${isActive ? 'text-amber-500' : 'text-slate-400'}`} />;
+      case 'draft':
+        return <Edit3 className={`w-3.5 h-3.5 ${isActive ? 'text-blue-500' : 'text-slate-400'}`} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="!w-2.5 !h-2.5 !border-2 !border-white" 
+        style={{ backgroundColor: colors.border }}
+      />
+      <div
+        className={`
+          rounded-xl shadow-lg border-2 transition-all duration-200 cursor-pointer
+          ${isFocused ? 'ring-4 ring-offset-2 shadow-xl' : 'hover:shadow-xl'}
+        `}
+        style={{ 
+          borderColor: colors.border,
+          backgroundColor: colors.bg,
+          minWidth: '200px',
+          ['--tw-ring-color' as string]: colors.ring,
+        }}
+        onClick={onClick}
+      >
+        <div className="p-3">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: accentColor }}
+            >
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`font-semibold text-sm ${isActive ? 'text-slate-800' : 'text-slate-600'}`}>{document.shortName}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                {getStatusIcon()}
+                <span className={`text-xs capitalize ${isActive ? 'text-slate-500' : 'text-slate-400'}`}>{document.status.replace('_', ' ')}</span>
+                <span className="text-xs text-slate-400">v{document.version}</span>
+              </div>
+            </div>
+          </div>
+          
+          {hasPendingUpdates && (
+            <div className="mt-2 pt-2 border-t border-amber-200 flex items-center gap-1.5 text-amber-600">
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">{document.pendingUpdates!.length} pending update{document.pendingUpdates!.length > 1 ? 's' : ''}</span>
+            </div>
+          )}
+          
+          {isActive && !hasPendingUpdates && (
+            <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+              {getVeevaSyncIcon(document.veevaSync)}
+              <span className="text-[10px] text-slate-400 capitalize">
+                {document.veevaSync?.replace('_', ' ') || 'not synced'}
+              </span>
+            </div>
+          )}
+          
+          {isActive && document.supportingDocs.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-1 text-xs text-slate-400">
+                <Paperclip className="w-3.5 h-3.5" />
+                <span>{document.supportingDocs.length} supporting documents</span>
+              </div>
+              {isFocused && (
+                <div className="mt-1.5 space-y-0.5">
+                  {document.supportingDocs.map(doc => (
+                    <div key={doc.id} className="text-xs text-slate-500 truncate pl-1">
+                      • {doc.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isFocused && hasPendingUpdates && (
+            <div className="mt-2 pt-2 border-t border-slate-100">
+              <p className="text-[10px] font-medium text-amber-700 mb-1">Pending Updates:</p>
+              {document.pendingUpdates!.slice(0, 2).map((update, idx) => (
+                <div key={idx} className="text-[10px] text-slate-500 truncate">
+                  • {update.sourceDocName}: {update.sourceSection}
+                </div>
+              ))}
+              {document.pendingUpdates!.length > 2 && (
+                <div className="text-[10px] text-slate-400">
+                  +{document.pendingUpdates!.length - 2} more
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="!w-2.5 !h-2.5 !border-2 !border-white"
+        style={{ backgroundColor: colors.border }}
+      />
+    </>
+  );
+});
