@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { FlaskConical, FileText, CheckCircle, Clock, Edit3, ChevronDown, ChevronRight, Paperclip, Activity, Beaker, Shield, Target, ClipboardCheck, Users, BarChart3, AlertCircle, Cloud, RefreshCw, AlertTriangle, CloudOff } from 'lucide-react';
+import { FlaskConical, FileText, CheckCircle, Clock, Edit3, ChevronDown, ChevronRight, Activity, Beaker, Shield, Target, ClipboardCheck, Users, BarChart3, AlertCircle, Cloud, RefreshCw, AlertTriangle, CloudOff } from 'lucide-react';
 import type { Study, StudyDocument, StudyType, OperationalDocument, OperationalDocType, VeevaSyncStatus } from '../data/mockData';
-import { studyTypeLabels, operationalDocLabels } from '../data/mockData';
+import { studyTypeLabels } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
 

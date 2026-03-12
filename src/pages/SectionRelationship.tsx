@@ -39,7 +39,7 @@ const docTypeToColor: Record<string, string> = {
 };
 
 export function SectionRelationship() {
-  const { submissionId, studyId } = useParams<{ submissionId: string; studyId?: string }>();
+  const { submissionId } = useParams<{ submissionId: string }>();
   const [searchParams] = useSearchParams();
   
   const sourceTypeParam = searchParams.get('source') || 'protocol';

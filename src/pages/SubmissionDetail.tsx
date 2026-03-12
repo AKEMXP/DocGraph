@@ -23,7 +23,7 @@ import {
   qcIssueTypeLabels,
   qcIssueSeverityColors,
 } from '../data/mockData';
-import type { Study, SummaryDocument, StudyType, CrossStudyDocument, QCIssue } from '../data/mockData';
+import type { Study, SummaryDocument, CrossStudyDocument, QCIssue } from '../data/mockData';
 import { StudyNode } from '../components/StudyNode';
 import { SummaryDocNode } from '../components/SummaryDocNode';
 import { CrossStudyDocNode } from '../components/CrossStudyDocNode';

@@ -817,6 +817,7 @@ export const getStudies = (submissionId: string): Study[] => {
             supportingDocs: [],
           },
         },
+        operationalDocs: [],
       },
       {
         id: 'study-109',
@@ -846,6 +847,7 @@ export const getStudies = (submissionId: string): Study[] => {
             supportingDocs: [],
           },
         },
+        operationalDocs: [],
       },
     ];
   }
