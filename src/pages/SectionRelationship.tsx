@@ -19,8 +19,10 @@ import {
   mappingTypeLabels,
   mappingTypeColors,
   documentTypeLabels,
+  getStudies,
+  getSummaryDocuments,
 } from '../data/mockData';
-import type { MappingType, DocumentType } from '../data/mockData';
+import type { MappingType, DocumentType, PendingUpdate, StudyDocument, SummaryDocument } from '../data/mockData';
 import { SectionNode } from '../components/SectionNode';
 
 const nodeTypes = {
@@ -44,6 +46,8 @@ export function SectionRelationship() {
   
   const sourceTypeParam = searchParams.get('source') || 'protocol';
   const targetTypeParam = searchParams.get('target') || 'csr';
+  const sourceDocIdParam = searchParams.get('sourceId') || undefined;
+  const targetDocIdParam = searchParams.get('targetId') || undefined;
   
   const [sourceType, setSourceType] = useState<DocumentType>(sourceTypeParam as DocumentType);
   const [targetType, setTargetType] = useState<DocumentType>(targetTypeParam as DocumentType);
@@ -59,19 +63,103 @@ export function SectionRelationship() {
   const targetSections = getSections(targetType);
   const sectionMappings = getSectionMappings(sourceType, targetType);
 
+  // Resolve concrete documents for this submission and type pair
+  const studiesForSubmission = useMemo(() => getStudies(submissionId || ''), [submissionId]);
+  const summaryDocsForSubmission = useMemo(() => getSummaryDocuments(submissionId || ''), [submissionId]);
+
+  const sourceDoc = useMemo(() => {
+    // Helper to find study-level docs
+    const studyDocs: StudyDocument[] = [];
+    studiesForSubmission.forEach(study => {
+      const { protocol, sap, csr } = study.documents;
+      if (protocol) studyDocs.push(protocol);
+      if (sap) studyDocs.push(sap);
+      if (csr) studyDocs.push(csr);
+    });
+
+    if (sourceDocIdParam) {
+      const fromStudy = studyDocs.find(d => d.id === sourceDocIdParam);
+      if (fromStudy) return fromStudy;
+      const fromSummary = summaryDocsForSubmission.find(d => d.id === sourceDocIdParam);
+      if (fromSummary) return fromSummary;
+    }
+
+    if (sourceType === 'protocol' || sourceType === 'csr') {
+      return studyDocs.find(d => d.type === sourceType);
+    }
+
+    return summaryDocsForSubmission.find(d => d.type === sourceType);
+  }, [studiesForSubmission, summaryDocsForSubmission, sourceType, sourceDocIdParam]);
+
+  const targetDoc = useMemo(() => {
+    if (targetDocIdParam) {
+      const fromSummary = summaryDocsForSubmission.find(d => d.id === targetDocIdParam);
+      if (fromSummary) return fromSummary;
+    }
+    return summaryDocsForSubmission.find(d => d.type === targetType);
+  }, [summaryDocsForSubmission, targetType, targetDocIdParam]);
+
+  // Collect pending updates that specifically connect sourceDoc -> targetDoc
+  const relevantUpdates: PendingUpdate[] = useMemo(() => {
+    if (!sourceDoc || !targetDoc) return [];
+    const updates: PendingUpdate[] = [];
+
+    const maybePending = (doc: StudyDocument | SummaryDocument | undefined) =>
+      (doc as any)?.pendingUpdates as PendingUpdate[] | undefined;
+
+    const pendingOnTarget = maybePending(targetDoc) || [];
+    pendingOnTarget.forEach(u => {
+      if (u.sourceDocId === sourceDoc.id) {
+        updates.push(u);
+      }
+    });
+
+    return updates;
+  }, [sourceDoc, targetDoc]);
+
+  // Derive which sections are "updated" vs "needs update"
+  const updatedSourceSectionIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!relevantUpdates.length) return ids;
+
+    const parseNumber = (label: string) => {
+      const first = label.split(' ')[0] || '';
+      return first.endsWith('.') ? first.slice(0, -1) : first;
+    };
+
+    relevantUpdates.forEach(u => {
+      const num = parseNumber(u.sourceSection);
+      const match = sourceSections.find(s => s.number === num);
+      if (match) ids.add(match.id);
+    });
+
+    return ids;
+  }, [relevantUpdates, sourceSections]);
+
+  const needsUpdateTargetSectionIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!relevantUpdates.length) return ids;
+
+    const parseNumber = (label: string) => {
+      const first = label.split(' ')[0] || '';
+      return first.endsWith('.') ? first.slice(0, -1) : first;
+    };
+
+    relevantUpdates.forEach(u => {
+      const num = parseNumber(u.targetSection);
+      const match = targetSections.find(s => s.number === num);
+      if (match) ids.add(match.id);
+    });
+
+    return ids;
+  }, [relevantUpdates, targetSections]);
+
   const sourceColor = docTypeToColor[sourceType] || '#3b82f6';
   const targetColor = docTypeToColor[targetType] || '#10b981';
 
-  const availablePairs = useMemo(() => {
-    const pairs: { source: DocumentType; target: DocumentType; label: string }[] = [
-      { source: 'protocol', target: 'csr', label: 'Protocol → CSR' },
-      { source: 'protocol', target: 'icf', label: 'Protocol → ICF' },
-      { source: 'csr', target: 'clinical_overview', label: 'CSR → Clinical Overview' },
-      { source: 'csr', target: 'clinical_summary', label: 'CSR → Clinical Summary' },
-      { source: 'csr', target: 'ib', label: 'CSR → IB' },
-    ];
-    return pairs;
-  }, []);
+  // Section mapping is now driven entirely by where the user clicked from
+  // (source/target + optional doc IDs in the URL). We no longer expose
+  // generic pair-switching buttons in this view.
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const nodes: Node[] = [];
@@ -90,6 +178,7 @@ export function SectionRelationship() {
           section, 
           side: 'source',
           color: sourceColor,
+          isUpdated: updatedSourceSectionIds.has(section.id),
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -105,6 +194,7 @@ export function SectionRelationship() {
           section, 
           side: 'target',
           color: targetColor,
+          needsUpdate: needsUpdateTargetSectionIds.has(section.id),
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -158,11 +248,6 @@ export function SectionRelationship() {
     );
   }
 
-  const handlePairChange = (source: DocumentType, target: DocumentType) => {
-    setSourceType(source);
-    setTargetType(target);
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -178,22 +263,6 @@ export function SectionRelationship() {
             {documentTypeLabels[sourceType]} → {documentTypeLabels[targetType]}
           </p>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {availablePairs.map(pair => (
-          <button
-            key={`${pair.source}-${pair.target}`}
-            onClick={() => handlePairChange(pair.source, pair.target)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              sourceType === pair.source && targetType === pair.target
-                ? 'bg-slate-800 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {pair.label}
-          </button>
-        ))}
       </div>
 
       <div className="grid grid-cols-2 gap-6">

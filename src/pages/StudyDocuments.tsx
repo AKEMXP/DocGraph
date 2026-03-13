@@ -17,6 +17,8 @@ import { getStudies, submissions, studyTypeLabels, operationalDocLabels, veevaSy
 import type { StudyDocument, OperationalDocument, OperationalDocType, VeevaSyncStatus, PendingUpdate } from '../data/mockData';
 import { highlightColors } from '../utils/highlightColors';
 import type { HighlightState } from '../utils/highlightColors';
+import { computeEdgeVisualStyle } from '../utils/edgeStyling';
+import { getStatusColors } from '../utils/statusColors';
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -73,6 +75,7 @@ interface DocNodeProps {
     doc: StudyDocument; 
     highlightState: HighlightState;
     isFocused: boolean;
+    hasRecentUpdates?: boolean;
     onClick?: () => void;
     onOpenEditor?: () => void;
     onShowUpdates?: () => void;
@@ -80,12 +83,19 @@ interface DocNodeProps {
 }
 
 const DocNode = memo(function DocNode({ data }: DocNodeProps) {
-  const { doc, highlightState, isFocused, onClick, onOpenEditor, onShowUpdates } = data;
+  const { doc, highlightState, isFocused, hasRecentUpdates, onClick, onOpenEditor, onShowUpdates } = data;
   const hasPendingUpdates = doc.pendingUpdates && doc.pendingUpdates.length > 0;
   
-  const colors = highlightColors[highlightState];
-  const isActive = highlightState !== 'default';
-  const accentColor = isActive ? colors.border : '#64748b';
+  const isHighlighted = highlightState !== 'default';
+  const statusColors = getStatusColors(doc.status);
+  const baseColors = {
+    border: statusColors.border,
+    bg: statusColors.bg,
+    ring: 'transparent',
+  };
+  const colors = isHighlighted ? highlightColors[highlightState] : baseColors;
+  const isActive = isHighlighted;
+  const accentColor = isHighlighted ? colors.border : statusColors.accent;
   
   return (
     <>
@@ -104,7 +114,10 @@ const DocNode = memo(function DocNode({ data }: DocNodeProps) {
         }}
         onClick={onClick}
       >
-        <div className="flex items-start gap-3">
+        <div className="relative flex items-start gap-3">
+          {hasRecentUpdates && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
           <div 
             className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: accentColor }}
@@ -126,7 +139,7 @@ const DocNode = memo(function DocNode({ data }: DocNodeProps) {
           <div className="mt-3 pt-3 border-t border-amber-200 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-amber-600">
               <AlertCircle className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">{doc.pendingUpdates!.length} pending update{doc.pendingUpdates!.length > 1 ? 's' : ''}</span>
+              <span className="text-xs font-medium">{doc.pendingUpdates!.length} needs update{doc.pendingUpdates!.length > 1 ? 's' : ''}</span>
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onShowUpdates?.(); }}
@@ -193,18 +206,26 @@ interface OpDocNodeProps {
     doc: OperationalDocument; 
     highlightState: HighlightState;
     isFocused: boolean;
+    hasRecentUpdates?: boolean;
     onOpenEditor?: () => void;
     onShowUpdates?: () => void;
   };
 }
 
 const OpDocNode = memo(function OpDocNode({ data }: OpDocNodeProps) {
-  const { doc, highlightState, isFocused, onOpenEditor, onShowUpdates } = data;
+  const { doc, highlightState, isFocused, hasRecentUpdates, onOpenEditor, onShowUpdates } = data;
   const hasPendingUpdates = doc.pendingUpdates && doc.pendingUpdates.length > 0;
   
-  const colors = highlightColors[highlightState];
-  const isActive = highlightState !== 'default';
-  const accentColor = isActive ? colors.border : '#64748b';
+  const isHighlighted = highlightState !== 'default';
+  const statusColors = getStatusColors(doc.status);
+  const baseColors = {
+    border: statusColors.border,
+    bg: statusColors.bg,
+    ring: 'transparent',
+  };
+  const colors = isHighlighted ? highlightColors[highlightState] : baseColors;
+  const isActive = isHighlighted;
+  const accentColor = isHighlighted ? colors.border : statusColors.accent;
   
   return (
     <>
@@ -223,7 +244,10 @@ const OpDocNode = memo(function OpDocNode({ data }: OpDocNodeProps) {
           ['--tw-ring-color' as string]: colors.ring,
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="relative flex items-center gap-3">
+          {hasRecentUpdates && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
           <div 
             className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
@@ -244,7 +268,7 @@ const OpDocNode = memo(function OpDocNode({ data }: OpDocNodeProps) {
           <div className="mt-2 pt-2 border-t border-amber-200 flex items-center justify-between">
             <div className="flex items-center gap-1 text-amber-600">
               <AlertCircle className="w-3 h-3" />
-              <span className="text-[10px] font-medium">{doc.pendingUpdates!.length} pending</span>
+              <span className="text-[10px] font-medium">{doc.pendingUpdates!.length} needs update{doc.pendingUpdates!.length > 1 ? 's' : ''}</span>
             </div>
             <button 
               onClick={(e) => { e.stopPropagation(); onShowUpdates?.(); }}
@@ -441,8 +465,25 @@ export function StudyDocuments() {
     const xGap = 320;
     let regXPos = 100;
 
+    // Collect upstream IDs that are the source of someone else's pending updates (recently updated)
+    const recentlyUpdatedIds = new Set<string>();
+    const allDocsForUpdates = [
+      docs.protocol,
+      docs.sap,
+      docs.csr,
+      ...opDocs,
+    ].filter(Boolean) as { pendingUpdates?: { sourceDocId: string }[] }[];
+    allDocsForUpdates.forEach(d => {
+      d.pendingUpdates?.forEach(update => {
+        if (update.sourceDocId) {
+          recentlyUpdatedIds.add(update.sourceDocId);
+        }
+      });
+    });
+
     if (docs.protocol) {
       const highlightState = getHighlightState('protocol');
+      const hasRecentUpdates = recentlyUpdatedIds.has(docs.protocol.id);
       nodeArray.push({
         id: 'protocol',
         type: 'document',
@@ -451,6 +492,7 @@ export function StudyDocuments() {
           doc: docs.protocol, 
           highlightState,
           isFocused: focusedId === 'protocol',
+          hasRecentUpdates,
           onClick: () => toggleFocus('protocol'),
           onOpenEditor: () => openInEditor(docs.protocol?.localPath),
           onShowUpdates: docs.protocol.pendingUpdates?.length 
@@ -465,6 +507,7 @@ export function StudyDocuments() {
 
     if (docs.sap) {
       const highlightState = getHighlightState('sap');
+      const hasRecentUpdates = recentlyUpdatedIds.has(docs.sap.id);
       nodeArray.push({
         id: 'sap',
         type: 'document',
@@ -473,6 +516,7 @@ export function StudyDocuments() {
           doc: docs.sap, 
           highlightState,
           isFocused: focusedId === 'sap',
+          hasRecentUpdates,
           onClick: () => toggleFocus('sap'),
           onOpenEditor: () => openInEditor(docs.sap?.localPath),
           onShowUpdates: docs.sap.pendingUpdates?.length 
@@ -487,6 +531,7 @@ export function StudyDocuments() {
 
     if (docs.csr) {
       const highlightState = getHighlightState('csr');
+      const hasRecentUpdates = recentlyUpdatedIds.has(docs.csr.id);
       nodeArray.push({
         id: 'csr',
         type: 'document',
@@ -495,6 +540,7 @@ export function StudyDocuments() {
           doc: docs.csr, 
           highlightState,
           isFocused: focusedId === 'csr',
+          hasRecentUpdates,
           onClick: () => toggleFocus('csr'),
           onOpenEditor: () => openInEditor(docs.csr?.localPath),
           onShowUpdates: docs.csr.pendingUpdates?.length 
@@ -511,6 +557,7 @@ export function StudyDocuments() {
     opDocs.forEach((opDoc, index) => {
       const nodeId = `op-${opDoc.id}`;
       const highlightState = getHighlightState(nodeId);
+      const hasRecentUpdates = recentlyUpdatedIds.has(opDoc.id);
       nodeArray.push({
         id: nodeId,
         type: 'opDocument',
@@ -519,6 +566,7 @@ export function StudyDocuments() {
           doc: opDoc, 
           highlightState,
           isFocused: focusedId === nodeId,
+          hasRecentUpdates,
           onOpenEditor: () => openInEditor(opDoc.localPath),
           onShowUpdates: opDoc.pendingUpdates?.length 
             ? () => setSelectedUpdates({ docName: opDoc.name, updates: opDoc.pendingUpdates! })
@@ -529,34 +577,11 @@ export function StudyDocuments() {
       });
     });
 
-    // Create edges with highlight-aware colors
-    const getEdgeStyle = (sourceId: string, targetId: string) => {
-      let edgeColor = '#e2e8f0'; // Default muted
-      let strokeWidth = 1.5;
-      let animated = false;
-      
-      if (focusedId) {
-        const sourceHighlight = getHighlightState(sourceId);
-        
-        if (sourceId === focusedId || targetId === focusedId) {
-          animated = true;
-          strokeWidth = 2.5;
-          
-          if (sourceId === focusedId) {
-            edgeColor = highlightColors.downstream.border;
-          } else {
-            edgeColor = sourceHighlight === 'upstream-attention' 
-              ? highlightColors['upstream-attention'].border 
-              : highlightColors.upstream.border;
-          }
-        }
-      }
-      
-      return { edgeColor, strokeWidth, animated };
-    };
-
     if (docs.protocol && docs.sap) {
-      const { edgeColor, strokeWidth, animated } = getEdgeStyle('protocol', 'sap');
+      const { edgeColor, strokeWidth, animated } = computeEdgeVisualStyle(
+        { sourceId: 'protocol', targetId: 'sap' },
+        { focusedId, highlightedEdge: null, getHighlightState },
+      );
       edgeArray.push({
         id: 'protocol-sap',
         source: 'protocol',
@@ -569,7 +594,10 @@ export function StudyDocuments() {
     }
 
     if (docs.protocol && docs.csr && !docs.sap) {
-      const { edgeColor, strokeWidth, animated } = getEdgeStyle('protocol', 'csr');
+      const { edgeColor, strokeWidth, animated } = computeEdgeVisualStyle(
+        { sourceId: 'protocol', targetId: 'csr' },
+        { focusedId, highlightedEdge: null, getHighlightState },
+      );
       edgeArray.push({
         id: 'protocol-csr',
         source: 'protocol',
@@ -582,7 +610,10 @@ export function StudyDocuments() {
     }
 
     if (docs.sap && docs.csr) {
-      const { edgeColor, strokeWidth, animated } = getEdgeStyle('sap', 'csr');
+      const { edgeColor, strokeWidth, animated } = computeEdgeVisualStyle(
+        { sourceId: 'sap', targetId: 'csr' },
+        { focusedId, highlightedEdge: null, getHighlightState },
+      );
       edgeArray.push({
         id: 'sap-csr',
         source: 'sap',
@@ -597,8 +628,10 @@ export function StudyDocuments() {
     opDocs.forEach((opDoc) => {
       if (docs.protocol) {
         const targetId = `op-${opDoc.id}`;
-        const { edgeColor, strokeWidth, animated } = getEdgeStyle('protocol', targetId);
-        
+        const { edgeColor, strokeWidth, animated } = computeEdgeVisualStyle(
+          { sourceId: 'protocol', targetId },
+          { focusedId, highlightedEdge: null, getHighlightState },
+        );
         edgeArray.push({
           id: `protocol-${opDoc.id}`,
           source: 'protocol',

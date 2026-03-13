@@ -4,12 +4,14 @@ import { FileText, CheckCircle, Clock, Edit3, Paperclip, Cloud, CloudOff, Refres
 import type { SummaryDocument, VeevaSyncStatus } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
+import { getStatusColors } from '../utils/statusColors';
 
 interface SummaryDocNodeProps {
   data: {
     document: SummaryDocument;
     isFocused: boolean;
     highlightState: HighlightState;
+    hasRecentUpdates?: boolean;
     onClick: () => void;
   };
 }
@@ -32,12 +34,19 @@ const getVeevaSyncIcon = (status?: VeevaSyncStatus) => {
 };
 
 export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocNodeProps) {
-  const { document, isFocused, highlightState, onClick } = data;
+  const { document, isFocused, highlightState, hasRecentUpdates, onClick } = data;
   const hasPendingUpdates = document.pendingUpdates && document.pendingUpdates.length > 0;
 
-  const colors = highlightColors[highlightState];
-  const isActive = highlightState !== 'default';
-  const accentColor = isActive ? colors.border : '#64748b';
+  const isHighlighted = highlightState !== 'default';
+  const statusColors = getStatusColors(document.status);
+  const baseColors = {
+    border: statusColors.border,
+    bg: statusColors.bg,
+    ring: 'transparent',
+  };
+  const colors = isHighlighted ? highlightColors[highlightState] : baseColors;
+  const isActive = isHighlighted;
+  const accentColor = isHighlighted ? colors.border : statusColors.accent;
 
   const getStatusIcon = () => {
     switch (document.status) {
@@ -74,7 +83,10 @@ export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocN
         }}
         onClick={onClick}
       >
-        <div className="p-3">
+        <div className="p-3 relative">
+          {hasRecentUpdates && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
           <div className="flex items-center gap-3">
             <div 
               className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -92,10 +104,10 @@ export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocN
             </div>
           </div>
           
-          {hasPendingUpdates && (
+          {hasPendingUpdates && !hasRecentUpdates && (
             <div className="mt-2 pt-2 border-t border-amber-200 flex items-center gap-1.5 text-amber-600">
               <AlertCircle className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">{document.pendingUpdates!.length} pending update{document.pendingUpdates!.length > 1 ? 's' : ''}</span>
+              <span className="text-xs font-medium">{document.pendingUpdates!.length} needs update{document.pendingUpdates!.length > 1 ? 's' : ''}</span>
             </div>
           )}
           

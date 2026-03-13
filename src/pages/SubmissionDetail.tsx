@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, PanelRightClose, PanelRightOpen, ShieldCheck, Play, Loader2, AlertTriangle, CheckCircle2, XCircle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, PanelRightClose, PanelRightOpen, ShieldCheck, Play, Loader2, AlertTriangle, CheckCircle2, XCircle, ChevronRight, FileText } from 'lucide-react';
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import {
   ReactFlow,
@@ -28,8 +28,9 @@ import { StudyNode } from '../components/StudyNode';
 import { SummaryDocNode } from '../components/SummaryDocNode';
 import { CrossStudyDocNode } from '../components/CrossStudyDocNode';
 import { layoutGraph } from '../utils/layoutGraph';
-import { highlightColors } from '../utils/highlightColors';
 import type { HighlightState } from '../utils/highlightColors';
+import { computeEdgeVisualStyle } from '../utils/edgeStyling';
+import { AddDocumentModal, type SupportingDocOption } from '../components/AddDocumentModal';
 
 const nodeTypes = {
   study: StudyNode,
@@ -48,12 +49,13 @@ interface GraphLayoutProps {
   summaryDocs: SummaryDocument[];
   crossStudyDocs: CrossStudyDocument[];
   links: ReturnType<typeof getDocumentLinks>;
+  recentlyUpdatedDocIds: Set<string>;
   submissionId: string;
   graphState: GraphState;
   setGraphState: React.Dispatch<React.SetStateAction<GraphState>>;
 }
 
-function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId, graphState, setGraphState }: GraphLayoutProps) {
+function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpdatedDocIds, submissionId, graphState, setGraphState }: GraphLayoutProps) {
   const navigate = useNavigate();
   const { fitView } = useReactFlow();
   const { expandedStudies, focusedId, highlightedEdge } = graphState;
@@ -137,6 +139,12 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
     studies.forEach((study) => {
       const isExpanded = expandedStudies.has(study.id);
       const highlightState = getHighlightState(study.id);
+      const docs = study.documents;
+      const hasRecentUpdates =
+        (docs.protocol && recentlyUpdatedDocIds.has(docs.protocol.id)) ||
+        (docs.sap && recentlyUpdatedDocIds.has(docs.sap.id)) ||
+        (docs.csr && recentlyUpdatedDocIds.has(docs.csr.id)) ||
+        (study.operationalDocs || []).some(d => recentlyUpdatedDocIds.has(d.id));
       
       nodeArray.push({
         id: study.id,
@@ -147,6 +155,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
           isExpanded,
           isFocused: focusedId === study.id,
           highlightState,
+          hasRecentUpdates,
           onToggleExpand: () => toggleExpand(study.id),
           onClick: () => setFocused(study.id),
         },
@@ -157,6 +166,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
 
     summaryDocs.forEach((doc) => {
       const highlightState = getHighlightState(doc.id);
+      const hasRecentUpdates = recentlyUpdatedDocIds.has(doc.id);
       
       nodeArray.push({
         id: doc.id,
@@ -166,6 +176,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
           document: doc,
           isFocused: focusedId === doc.id,
           highlightState,
+          hasRecentUpdates,
           onClick: () => setFocused(doc.id),
         },
         sourcePosition: Position.Right,
@@ -175,6 +186,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
 
     crossStudyDocs.forEach((doc) => {
       const highlightState = getHighlightState(doc.id);
+      const hasRecentUpdates = recentlyUpdatedDocIds.has(doc.id);
       
       nodeArray.push({
         id: doc.id,
@@ -184,6 +196,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
           document: doc,
           isFocused: focusedId === doc.id,
           highlightState,
+          hasRecentUpdates,
           onClick: () => setFocused(doc.id),
         },
         sourcePosition: Position.Right,
@@ -196,45 +209,18 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, submissionId
     links.forEach(link => {
       if (!visibleNodeIds.has(link.sourceId) || !visibleNodeIds.has(link.targetId)) return;
       
-      // Determine edge color based on highlight context
-      let edgeColor = '#e2e8f0'; // Default muted
-      let strokeWidth = 1.5;
-      let isAnimated = false;
-      
-      // Check if this edge is highlighted due to QC issue
-      const isQCHighlighted = highlightedEdge && 
-        ((link.sourceId === highlightedEdge.sourceId && link.targetId === highlightedEdge.targetId) ||
-         (link.sourceId === highlightedEdge.targetId && link.targetId === highlightedEdge.sourceId));
-      
-      if (isQCHighlighted) {
-        edgeColor = '#ef4444'; // Red for QC issue
-        strokeWidth = 3;
-        isAnimated = true;
-      } else if (focusedId) {
-        const sourceHighlight = getHighlightState(link.sourceId);
-        
-        if (link.sourceId === focusedId || link.targetId === focusedId) {
-          isAnimated = true;
-          strokeWidth = 2.5;
-          
-          if (link.sourceId === focusedId) {
-            // Focused -> downstream
-            edgeColor = highlightColors.downstream.border;
-          } else {
-            // Upstream -> focused
-            edgeColor = sourceHighlight === 'upstream-attention' 
-              ? highlightColors['upstream-attention'].border 
-              : highlightColors.upstream.border;
-          }
-        }
-      }
+      const { edgeColor, strokeWidth, animated } = computeEdgeVisualStyle(link, {
+        focusedId,
+        highlightedEdge,
+        getHighlightState,
+      });
       
       edgeArray.push({
         id: link.id,
         source: link.sourceId,
         target: link.targetId,
         type: 'smoothstep',
-        animated: isAnimated,
+        animated,
         style: { 
           stroke: edgeColor,
           strokeWidth,
@@ -344,6 +330,35 @@ export function SubmissionDetail() {
   const summaryDocs = getSummaryDocuments(submissionId || '');
   const crossStudyDocs = getCrossStudyDocuments(submissionId || '');
   const links = getDocumentLinks(submissionId || '');
+
+  // Docs that are the SOURCE of someone else's pending updates (recently updated upstream)
+  const recentlyUpdatedDocIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    const collectFromStudy = (study: Study) => {
+      const docs = study.documents;
+      const allDocs = [
+        docs.protocol,
+        docs.sap,
+        docs.csr,
+        ...(study.operationalDocs || []),
+      ].filter(Boolean) as { pendingUpdates?: { sourceDocId: string }[] }[];
+
+      allDocs.forEach(doc => {
+        doc.pendingUpdates?.forEach(update => {
+          if (update.sourceDocId) ids.add(update.sourceDocId);
+        });
+      });
+    };
+
+    studies.forEach(collectFromStudy);
+    summaryDocs.forEach(doc => {
+      doc.pendingUpdates?.forEach(update => {
+        if (update.sourceDocId) ids.add(update.sourceDocId);
+      });
+    });
+    return ids;
+  }, [studies, summaryDocs, crossStudyDocs]);
   
   // Map document IDs to their parent study IDs (for documents inside studies)
   const docIdToStudyId = useMemo(() => {
@@ -381,6 +396,8 @@ export function SubmissionDetail() {
     focusedId: resolvedFocusId,
     highlightedEdge: null,
   }));
+
+  const [showAddDocModal, setShowAddDocModal] = useState(false);
   
   // Update focusedId if URL param changes
   useEffect(() => {
@@ -442,6 +459,18 @@ export function SubmissionDetail() {
   const majorCount = qcIssues.filter(i => i.severity === 'major').length;
   const minorCount = qcIssues.filter(i => i.severity === 'minor').length;
 
+  // Simple upstream suggestions: protocols / SAPs / CSRs from this submission
+  const supportingOptions: SupportingDocOption[] = useMemo(() => {
+    const opts: SupportingDocOption[] = [];
+    studies.forEach(study => {
+      const { protocol, sap, csr } = study.documents;
+      if (protocol) opts.push({ id: protocol.id, label: protocol.name, type: 'Protocol' });
+      if (sap) opts.push({ id: sap.id, label: sap.name, type: 'SAP' });
+      if (csr) opts.push({ id: csr.id, label: csr.name, type: 'CSR' });
+    });
+    return opts;
+  }, [studies]);
+
   if (!submission) {
     return (
       <div className="text-center py-12">
@@ -466,23 +495,32 @@ export function SubmissionDetail() {
           <h1 className="text-xl font-bold text-slate-800">{submission.name}</h1>
           <p className="text-sm text-slate-500">Double-click a study to see documents • Click edges for section mapping</p>
         </div>
-        <button
-          onClick={() => setShowQCPanel(!showQCPanel)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
-            showQCPanel
-              ? 'bg-blue-50 text-blue-700'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          {showQCPanel ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
-          <ShieldCheck className="w-4 h-4" />
-          <span>QC</span>
-          {qcComplete && qcIssues.length > 0 && (
-            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-              {qcIssues.length}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAddDocModal(true)}
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Add Document</span>
+          </button>
+          <button
+            onClick={() => setShowQCPanel(!showQCPanel)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm ${
+              showQCPanel
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            {showQCPanel ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+            <ShieldCheck className="w-4 h-4" />
+            <span>QC</span>
+            {qcComplete && qcIssues.length > 0 && (
+              <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {qcIssues.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex gap-4 min-h-0">
@@ -493,6 +531,7 @@ export function SubmissionDetail() {
               summaryDocs={summaryDocs}
               crossStudyDocs={crossStudyDocs}
               links={links} 
+              recentlyUpdatedDocIds={recentlyUpdatedDocIds}
               submissionId={submissionId || ''} 
               graphState={graphState}
               setGraphState={setGraphState}
@@ -639,6 +678,18 @@ export function SubmissionDetail() {
           </div>
         )}
       </div>
+      <AddDocumentModal
+        isOpen={showAddDocModal}
+        context="submission"
+        studies={studies}
+        supportingOptions={supportingOptions}
+        onClose={() => setShowAddDocModal(false)}
+        onSubmit={() => {
+          // For now this is a UX-only mock; we collect input but
+          // don’t persist or change the graph yet.
+          setShowAddDocModal(false);
+        }}
+      />
     </div>
   );
 }

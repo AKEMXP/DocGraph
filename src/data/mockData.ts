@@ -593,9 +593,6 @@ export const getStudies = (submissionId: string): Study[] => {
             veevaSync: 'syncing',
             veevaDocId: 'VV-DOC-102-CSR',
             localPath: '/documents/ONC-102/CSR_v0.8.docx',
-            pendingUpdates: [
-              { sourceDocId: 'doc-protocol-102', sourceDocName: 'Protocol', sourceSection: '4. Study Design', targetSection: '9.1. Overall Study Design', changeType: 'modified', changedAt: '2024-03-12' },
-            ],
           },
         },
         operationalDocs: [

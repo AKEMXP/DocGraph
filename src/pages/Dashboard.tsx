@@ -23,7 +23,7 @@ export function Dashboard() {
       subtitle: pendingUpdatesCount > 0 ? `${docsWithPendingUpdates.length} documents affected` : undefined,
     },
     {
-      label: 'Total Documents',
+      label: 'Active Documents',
       value: totalDocuments,
       icon: FileText,
       color: 'bg-emerald-500',

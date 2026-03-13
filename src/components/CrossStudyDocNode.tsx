@@ -4,12 +4,14 @@ import { FileText, CheckCircle, Clock, Edit3, AlertTriangle, Shield, FileSearch 
 import type { CrossStudyDocument, CrossStudyDocType } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
+import { getStatusColors } from '../utils/statusColors';
 
 interface CrossStudyDocNodeProps {
   data: {
     document: CrossStudyDocument;
     isFocused: boolean;
     highlightState: HighlightState;
+    hasRecentUpdates?: boolean;
     onClick: () => void;
   };
 }
@@ -40,11 +42,18 @@ function getDocTypeIcon(type: CrossStudyDocType) {
 }
 
 export const CrossStudyDocNode = memo(function CrossStudyDocNode({ data }: CrossStudyDocNodeProps) {
-  const { document, isFocused, highlightState, onClick } = data;
+  const { document, isFocused, highlightState, hasRecentUpdates, onClick } = data;
   
-  const colors = highlightColors[highlightState];
-  const isActive = highlightState !== 'default';
-  const accentColor = isActive ? colors.border : '#64748b';
+  const isHighlighted = highlightState !== 'default';
+  const statusColors = getStatusColors(document.status);
+  const baseColors = {
+    border: statusColors.border,
+    bg: statusColors.bg,
+    ring: 'transparent',
+  };
+  const colors = isHighlighted ? highlightColors[highlightState] : baseColors;
+  const isActive = isHighlighted;
+  const accentColor = isHighlighted ? colors.border : statusColors.accent;
   
   return (
     <div
@@ -66,7 +75,10 @@ export const CrossStudyDocNode = memo(function CrossStudyDocNode({ data }: Cross
         style={{ background: colors.border }} 
       />
       
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2 mb-1 relative">
+        {hasRecentUpdates && (
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+        )}
         <div 
           className="w-6 h-6 rounded flex items-center justify-center text-white"
           style={{ backgroundColor: accentColor }}

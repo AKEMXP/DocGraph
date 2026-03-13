@@ -5,6 +5,7 @@ import type { Study, StudyDocument, StudyType, OperationalDocument, OperationalD
 import { studyTypeLabels } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
+import { getStatusColors } from '../utils/statusColors';
 
 const getVeevaSyncIcon = (status?: VeevaSyncStatus) => {
   switch (status) {
@@ -64,6 +65,7 @@ interface StudyNodeProps {
     isExpanded: boolean;
     isFocused: boolean;
     highlightState: HighlightState;
+    hasRecentUpdates?: boolean;
     onToggleExpand: () => void;
     onClick: () => void;
   };
@@ -88,7 +90,7 @@ const DocumentRow = ({ doc, color }: { doc: StudyDocument; color: string }) => {
   const hasPendingUpdates = doc.pendingUpdates && doc.pendingUpdates.length > 0;
   
   return (
-    <div className={`flex items-center gap-2 py-1.5 px-2 rounded hover:bg-white/50 ${hasPendingUpdates ? 'bg-amber-50/50' : ''}`}>
+      <div className={`flex items-center gap-2 py-1.5 px-2 rounded hover:bg-white/50 ${hasPendingUpdates ? 'bg-amber-50/50' : ''}`}>
       <div 
         className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: hasPendingUpdates ? '#fef3c7' : `${color}30` }}
@@ -98,7 +100,7 @@ const DocumentRow = ({ doc, color }: { doc: StudyDocument; color: string }) => {
       <div className="flex-1 min-w-0">
         <p className={`text-xs font-medium ${hasPendingUpdates ? 'text-amber-700' : 'text-slate-700'}`}>{doc.shortName}</p>
         {hasPendingUpdates && (
-          <p className="text-[10px] text-amber-600">{doc.pendingUpdates!.length} pending update{doc.pendingUpdates!.length > 1 ? 's' : ''}</p>
+          <p className="text-[10px] text-amber-600">{doc.pendingUpdates!.length} needs update{doc.pendingUpdates!.length > 1 ? 's' : ''}</p>
         )}
       </div>
       <div className="flex items-center gap-1">
@@ -139,7 +141,7 @@ const OperationalDocRow = ({ doc }: { doc: OperationalDocument }) => (
 );
 
 export const StudyNode = memo(function StudyNode({ data }: StudyNodeProps) {
-  const { study, isExpanded, isFocused, highlightState, onToggleExpand, onClick } = data;
+  const { study, isExpanded, isFocused, highlightState, hasRecentUpdates, onToggleExpand, onClick } = data;
   const docs = study.documents;
   const docCount = [docs.protocol, docs.sap, docs.csr].filter(Boolean).length;
   const opDocCount = study.operationalDocs?.length || 0;
@@ -151,9 +153,16 @@ export const StudyNode = memo(function StudyNode({ data }: StudyNodeProps) {
     ...(study.operationalDocs?.flatMap(d => d.pendingUpdates || []) || []),
   ].length;
 
-  const colors = highlightColors[highlightState];
-  const isActive = highlightState !== 'default';
-  const accentColor = isActive ? colors.border : '#64748b';
+  const isHighlighted = highlightState !== 'default';
+  const statusColors = getStatusColors(study.status);
+  const baseColors = {
+    border: statusColors.border,
+    bg: statusColors.bg,
+    ring: 'transparent',
+  };
+  const colors = isHighlighted ? highlightColors[highlightState] : baseColors;
+  const isActive = isHighlighted;
+  const accentColor = isHighlighted ? colors.border : statusColors.accent;
 
   return (
     <>
@@ -176,7 +185,11 @@ export const StudyNode = memo(function StudyNode({ data }: StudyNodeProps) {
         }}
         onClick={onClick}
       >
-        <div className="p-3">
+        <div className="m-[3px] rounded-[10px] border border-slate-200/80 bg-white/70 relative">
+          <div className="p-3">
+          {hasRecentUpdates && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
           <div className="flex items-center gap-3">
             <div 
               className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -231,13 +244,13 @@ export const StudyNode = memo(function StudyNode({ data }: StudyNodeProps) {
           {totalPendingUpdates > 0 && !isExpanded && (
             <div className="mt-2 pt-2 border-t border-amber-200 flex items-center gap-1.5 text-amber-600">
               <AlertCircle className="w-3.5 h-3.5" />
-              <span className="text-xs font-medium">{totalPendingUpdates} pending update{totalPendingUpdates > 1 ? 's' : ''}</span>
+              <span className="text-xs font-medium">{totalPendingUpdates} needs update{totalPendingUpdates > 1 ? 's' : ''}</span>
             </div>
           )}
-        </div>
+          </div>
 
         {isExpanded && (
-          <div className="px-3 pb-3" style={{ backgroundColor: `${colors.border}08` }}>
+          <div className="px-3 pb-3 rounded-b-[10px]" style={{ backgroundColor: `${colors.border}08` }}>
             <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider px-2 pt-1 mb-1">Regulatory Documents</p>
             <div className="space-y-0.5">
               {docs.protocol && <DocumentRow doc={docs.protocol} color={accentColor} />}
@@ -257,6 +270,7 @@ export const StudyNode = memo(function StudyNode({ data }: StudyNodeProps) {
             )}
           </div>
         )}
+        </div>
       </div>
       <Handle 
         type="source" 
