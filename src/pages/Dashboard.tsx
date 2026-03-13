@@ -168,12 +168,7 @@ export function Dashboard() {
                     <FileText className="w-4 h-4 text-amber-600" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-800 text-sm truncate">{doc.name}</p>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
-                        {doc.pendingUpdates.length}
-                      </span>
-                    </div>
+                    <p className="font-medium text-slate-800 text-sm truncate">{doc.name}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{doc.submissionName}</p>
                     <div className="mt-1.5 space-y-0.5">
                       {doc.pendingUpdates.slice(0, 2).map((update, idx) => (
