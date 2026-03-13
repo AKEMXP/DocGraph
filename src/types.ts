@@ -17,7 +17,7 @@ export interface User {
 export interface Submission {
   id: string;
   name: string;
-  status: 'draft' | 'in_progress' | 'under_review' | 'submitted';
+  status: 'draft' | 'in_progress' | 'under_review' | 'submitted' | 'archived';
   drugName: string;
   submissionType: 'NDA' | 'BLA' | 'ANDA' | 'IND';
   targetDate: string;

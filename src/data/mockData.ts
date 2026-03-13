@@ -53,6 +53,18 @@ export const submissions: Submission[] = [
     documentCount: 45,
     writingProjectCount: 4,
   },
+  {
+    id: 'sub-4',
+    name: 'NDA-2021-045 Archived Submission',
+    status: 'archived',
+    drugName: 'CardioSafe',
+    submissionType: 'NDA',
+    targetDate: '2021-11-30',
+    createdAt: '2020-09-12',
+    updatedAt: '2022-01-05',
+    documentCount: 132,
+    writingProjectCount: 7,
+  },
 ];
 
 export interface RecentDocument {
