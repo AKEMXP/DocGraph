@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { FileText, CheckCircle, Clock, Edit3, Paperclip, Cloud, CloudOff, RefreshCw, AlertTriangle, AlertCircle } from 'lucide-react';
+import { FileText, CheckCircle, Clock, Edit3, Paperclip, Cloud, CloudOff, RefreshCw, AlertTriangle, AlertCircle, ExternalLink } from 'lucide-react';
 import type { SummaryDocument, VeevaSyncStatus } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
@@ -13,6 +13,7 @@ interface SummaryDocNodeProps {
     highlightState: HighlightState;
     hasRecentUpdates?: boolean;
     onClick: () => void;
+    isGroup?: boolean;
   };
 }
 
@@ -34,8 +35,9 @@ const getVeevaSyncIcon = (status?: VeevaSyncStatus) => {
 };
 
 export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocNodeProps) {
-  const { document, isFocused, highlightState, hasRecentUpdates, onClick } = data;
+  const { document, isFocused, highlightState, hasRecentUpdates, onClick, isGroup } = data;
   const hasPendingUpdates = document.pendingUpdates && document.pendingUpdates.length > 0;
+  const isCmcGroup = !!isGroup || (document.type === 'cmc' && document.supportingDocs.length > 0);
 
   const isHighlighted = highlightState !== 'default';
   const statusColors = getStatusColors(document.status);
@@ -83,9 +85,14 @@ export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocN
         }}
         onClick={onClick}
       >
-        <div className="p-3 relative">
+        <div className={`relative ${isCmcGroup ? 'm-[3px] rounded-[10px] border border-slate-200/80 bg-white/70 p-3' : 'p-3'}`}>
           {hasRecentUpdates && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+          )}
+          {(document.type === 'clinical_summary' || document.type === 'clinical_overview') && (
+            <div className="absolute top-1 right-1 text-slate-400">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </div>
           )}
           <div className="flex items-center gap-3">
             <div 
@@ -111,7 +118,7 @@ export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocN
             </div>
           )}
           
-          {isActive && !hasPendingUpdates && (
+          {isActive && !hasPendingUpdates && !isCmcGroup && (
             <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-1.5">
               {getVeevaSyncIcon(document.veevaSync)}
               <span className="text-[10px] text-slate-400 capitalize">
@@ -120,13 +127,15 @@ export const SummaryDocNode = memo(function SummaryDocNode({ data }: SummaryDocN
             </div>
           )}
           
-          {isActive && document.supportingDocs.length > 0 && (
+          {(isActive || isCmcGroup) && document.supportingDocs.length > 0 && (
             <div className="mt-2 pt-2 border-t border-slate-100">
               <div className="flex items-center gap-1 text-xs text-slate-400">
                 <Paperclip className="w-3.5 h-3.5" />
-                <span>{document.supportingDocs.length} supporting documents</span>
+                <span>
+                  {isCmcGroup ? 'CMC components' : `${document.supportingDocs.length} supporting documents`}
+                </span>
               </div>
-              {isFocused && (
+              {(isFocused || isCmcGroup) && (
                 <div className="mt-1.5 space-y-0.5">
                   {document.supportingDocs.map(doc => (
                     <div key={doc.id} className="text-xs text-slate-500 truncate pl-1">

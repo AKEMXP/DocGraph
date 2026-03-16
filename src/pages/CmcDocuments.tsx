@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import {
   ReactFlow,
   Background,
@@ -9,7 +10,7 @@ import {
 } from '@xyflow/react';
 import type { Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { getSummaryDocuments, getCrossStudyDocuments, submissions } from '../data/mockData';
+import { getSummaryDocuments } from '../data/mockData';
 
 interface CmcChildDoc {
   id: string;
@@ -39,10 +40,8 @@ const nodeTypes = {
 
 export function CmcDocuments() {
   const { submissionId } = useParams<{ submissionId: string }>();
-  const submission = submissions.find(s => s.id === submissionId);
 
   const summaryDocs = useMemo(() => getSummaryDocuments(submissionId || ''), [submissionId]);
-  const crossStudyDocs = useMemo(() => getCrossStudyDocuments(submissionId || ''), [submissionId]);
 
   const cmcSummary = summaryDocs.find(d => d.type === 'cmc');
 
@@ -54,11 +53,6 @@ export function CmcDocuments() {
       type: d.type,
     }));
   }, [cmcSummary]);
-
-  const labelingDocs = useMemo(
-    () => crossStudyDocs.filter(d => d.type === 'labeling'),
-    [crossStudyDocs],
-  );
 
   const initialNodes: Node<CmcNodeData>[] = useMemo(() => {
     const nodes: Node<CmcNodeData>[] = [];
@@ -91,22 +85,8 @@ export function CmcDocuments() {
       });
     });
 
-    labelingDocs.forEach((doc, index) => {
-      nodes.push({
-        id: doc.id,
-        type: 'cmcDoc',
-        position: { x: 680, y: index * 140 - 40 },
-        data: {
-          label: doc.name,
-          subtitle: 'Labeling',
-        },
-        sourcePosition: Position.Right,
-        targetPosition: Position.Left,
-      });
-    });
-
     return nodes;
-  }, [cmcSummary, cmcChildren, labelingDocs]);
+  }, [cmcSummary, cmcChildren]);
 
   const initialEdges: Edge[] = useMemo(() => {
     const edges: Edge[] = [];
@@ -114,60 +94,54 @@ export function CmcDocuments() {
     if (cmcSummary) {
       cmcChildren.forEach(child => {
         edges.push({
-          id: `edge-${cmcSummary.id}-${child.id}`,
-          source: cmcSummary.id,
-          target: child.id,
+          id: `edge-${child.id}-${cmcSummary.id}`,
+          source: child.id,
+          target: cmcSummary.id,
           type: 'smoothstep',
-        });
-      });
-
-      labelingDocs.forEach(doc => {
-        edges.push({
-          id: `edge-${cmcSummary.id}-${doc.id}`,
-          source: cmcSummary.id,
-          target: doc.id,
-          type: 'smoothstep',
+          animated: true,
+          style: {
+            stroke: '#64748b',
+            strokeWidth: 2,
+          },
         });
       });
     }
 
     return edges;
-  }, [cmcSummary, cmcChildren, labelingDocs]);
+  }, [cmcSummary, cmcChildren]);
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
-      <div className="px-6 pt-4 pb-3 border-b border-slate-200 flex items-center justify-between bg-white">
-        <div>
-          <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-            <Link
-              to="/submissions"
-              className="hover:text-slate-700 transition-colors"
-            >
-              Submissions
-            </Link>
-            <span>/</span>
-            {submission && (
-              <Link
-                to={`/submissions/${submission.id}`}
-                className="hover:text-slate-700 transition-colors"
-              >
-                {submission.name}
-              </Link>
+      <div className="px-6 pt-4 pb-3 border-b border-slate-200 bg-white">
+        <div className="flex items-center gap-4">
+          <Link
+            to={`/submissions/${submissionId}`}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex-1">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-slate-800">
+                {cmcSummary?.shortName || 'CMC (2.3)'}
+              </h1>
+              {cmcSummary && (
+                <span
+                  className="px-2 py-1 rounded text-xs font-semibold uppercase bg-sky-100 text-sky-700"
+                >
+                  CMC
+                </span>
+              )}
+            </div>
+            {cmcSummary && (
+              <p className="text-slate-500 text-sm mt-0.5">
+                {cmcSummary.name} • Module 2.3 & Module 3
+              </p>
             )}
-            <span>/</span>
-            <span>CMC Graph</span>
           </div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            CMC Documents
-          </h1>
-          {cmcSummary && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              Hub: {cmcSummary.name}
-            </p>
-          )}
         </div>
       </div>
 

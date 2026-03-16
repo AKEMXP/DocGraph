@@ -192,6 +192,8 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
           highlightState,
           hasRecentUpdates,
           onClick: () => setFocused(doc.id),
+          // Treat Sanofi CMC as a group doc hub
+          isGroup: submissionId === 'sub-5' && doc.id === 'doc-cmc-5',
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -212,6 +214,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
           highlightState,
           hasRecentUpdates,
           onClick: () => setFocused(doc.id),
+          isGroup: false,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -238,7 +241,6 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
         style: { 
           stroke: edgeColor,
           strokeWidth,
-          strokeDasharray: link.relationshipType === 'summarizes' ? '6,4' : undefined,
         },
         markerEnd: {
           type: MarkerType.ArrowClosed,
@@ -277,8 +279,29 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
       getNodeSize,
     });
 
-    return { initialNodes: layoutedNodes, edges: edgeArray };
-  }, [studies, summaryDocs, crossStudyDocs, links, expandedStudies, focusedId, highlightedEdge, toggleExpand, setFocused]);
+    // For Sanofi, pin nodes to a hand-tuned layout that matches the design
+    const positionedNodes =
+      submissionId === 'sub-5'
+        ? layoutedNodes.map((node) => {
+            switch (node.id) {
+              case 'doc-cmc-5':
+                return { ...node, position: { x: 0, y: -80 } };
+              case 'study-501':
+                return { ...node, position: { x: 0, y: 120 } };
+              case 'doc-274-5': // Clinical Overview
+                return { ...node, position: { x: 320, y: 40 } };
+              case 'doc-273-5': // Clinical Summary
+                return { ...node, position: { x: 320, y: 200 } };
+              case 'doc-labeling-5':
+                return { ...node, position: { x: 640, y: -40 } };
+              default:
+                return node;
+            }
+          })
+        : layoutedNodes;
+
+    return { initialNodes: positionedNodes, edges: edgeArray };
+  }, [studies, summaryDocs, crossStudyDocs, links, expandedStudies, focusedId, highlightedEdge, toggleExpand, setFocused, submissionId]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edgesState, setEdges, onEdgesChange] = useEdgesState(edges);

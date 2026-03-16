@@ -1140,6 +1140,16 @@ export const getStudies = (submissionId: string): Study[] => {
             veevaSync: 'syncing',
             veevaDocId: 'VV-DOC-501-CSR',
             localPath: '/documents/SAN-501/CSR_v1.0.docx',
+            pendingUpdates: [
+              {
+                sourceDocId: 'doc-protocol-501',
+                sourceDocName: 'Protocol SAN-501-001',
+                sourceSection: '9. Statistical Methods',
+                targetSection: '11. Efficacy Evaluation',
+                changeType: 'modified',
+                changedAt: '2025-03-08',
+              },
+            ],
           },
         },
         operationalDocs: [
@@ -1344,6 +1354,16 @@ export const getSummaryDocuments = (submissionId: string): SummaryDocument[] => 
         supportingDocs: [],
         veevaSync: 'syncing',
         localPath: '/documents/SAN-501/Module2/2.7.3_Clinical_Efficacy_v0.4.docx',
+        pendingUpdates: [
+          {
+            sourceDocId: 'doc-csr-501',
+            sourceDocName: 'CSR SAN-501-001',
+            sourceSection: '11. Efficacy Evaluation',
+            targetSection: '2.7.3 Summary of Clinical Efficacy',
+            changeType: 'modified',
+            changedAt: '2025-03-10',
+          },
+        ],
       },
       {
         id: 'doc-274-5',
@@ -1356,11 +1376,21 @@ export const getSummaryDocuments = (submissionId: string): SummaryDocument[] => 
         supportingDocs: [],
         veevaSync: 'syncing',
         localPath: '/documents/SAN-501/Module2/2.7.4_Clinical_Safety_v0.4.docx',
+        pendingUpdates: [
+          {
+            sourceDocId: 'doc-csr-501',
+            sourceDocName: 'CSR SAN-501-001',
+            sourceSection: '11. Efficacy Evaluation',
+            targetSection: '2.5.4. Overview of Efficacy',
+            changeType: 'modified',
+            changedAt: '2025-03-10',
+          },
+        ],
       },
       {
         id: 'doc-cmc-5',
-        name: 'Quality Overall Summary (2.3)',
-        shortName: 'CMC / QOS',
+        name: 'CMC (2.3)',
+        shortName: 'CMC',
         type: 'cmc',
         status: 'in_review',
         version: '1.2',
@@ -1370,7 +1400,7 @@ export const getSummaryDocuments = (submissionId: string): SummaryDocument[] => 
           { id: 'sm-5b', name: 'Drug Product (3.2.P)', type: 'Module 3' },
         ],
         veevaSync: 'synced',
-        localPath: '/documents/SAN-501/Module2/CMC_QOS_v1.2.docx',
+        localPath: '/documents/SAN-501/Module2/CMC_Summary_v1.2.docx',
       },
     ];
   }
@@ -1463,19 +1493,10 @@ export const getDocumentLinks = (submissionId: string): DocumentLink[] => {
     return [
       { id: 'link-501', sourceId: 'study-501', targetId: 'doc-273-5', relationshipType: 'summarizes' },
       { id: 'link-502', sourceId: 'study-501', targetId: 'doc-274-5', relationshipType: 'summarizes' },
-      { id: 'link-503', sourceId: 'doc-cmc-5', targetId: 'doc-273-5', relationshipType: 'informs' },
-      { id: 'link-504', sourceId: 'doc-cmc-5', targetId: 'doc-274-5', relationshipType: 'informs' },
-
-      // Labeling (SmPC/USPI) summarize CSR and clinical summaries, informed by CMC
-      { id: 'link-505', sourceId: 'doc-273-5', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
-      { id: 'link-506', sourceId: 'doc-274-5', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
-      { id: 'link-507', sourceId: 'doc-csr-501', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
-      { id: 'link-508', sourceId: 'doc-cmc-5', targetId: 'doc-smpc-5', relationshipType: 'informs' },
-
-      { id: 'link-509', sourceId: 'doc-273-5', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
-      { id: 'link-510', sourceId: 'doc-274-5', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
-      { id: 'link-511', sourceId: 'doc-csr-501', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
-      { id: 'link-512', sourceId: 'doc-cmc-5', targetId: 'doc-uspi-5', relationshipType: 'informs' },
+      // Labeling (combined) summarizes clinical summaries, informed by CMC
+      { id: 'link-503', sourceId: 'doc-273-5', targetId: 'doc-labeling-5', relationshipType: 'summarizes' },
+      { id: 'link-504', sourceId: 'doc-274-5', targetId: 'doc-labeling-5', relationshipType: 'summarizes' },
+      { id: 'link-505', sourceId: 'doc-cmc-5', targetId: 'doc-labeling-5', relationshipType: 'informs' },
     ];
   }
   
@@ -1788,21 +1809,12 @@ export const getCrossStudyDocuments = (submissionId: string): CrossStudyDocument
   if (submissionId === 'sub-5') {
     return [
       {
-        id: 'doc-smpc-5',
-        name: 'Summary of Product Characteristics (SmPC)',
-        shortName: 'SmPC',
+        id: 'doc-labeling-5',
+        name: 'Labeling (CCDS / SmPC / USPI)',
+        shortName: 'Labeling',
         type: 'labeling',
         status: 'in_review',
         version: '1.0',
-        color: '#0ea5e9',
-      },
-      {
-        id: 'doc-uspi-5',
-        name: 'US Prescribing Information (USPI)',
-        shortName: 'USPI',
-        type: 'labeling',
-        status: 'draft',
-        version: '0.9',
         color: '#0ea5e9',
       },
     ];

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { FileText, CheckCircle, Clock, Edit3, AlertTriangle, Shield, FileSearch } from 'lucide-react';
+import { FileText, CheckCircle, Clock, Edit3, AlertTriangle, Shield, FileSearch, ExternalLink } from 'lucide-react';
 import type { CrossStudyDocument, CrossStudyDocType } from '../data/mockData';
 import type { HighlightState } from '../utils/highlightColors';
 import { highlightColors } from '../utils/highlightColors';
@@ -78,6 +78,11 @@ export const CrossStudyDocNode = memo(function CrossStudyDocNode({ data }: Cross
       <div className="flex items-center gap-2 mb-1 relative">
         {hasRecentUpdates && (
           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+        )}
+        {document.type === 'labeling' && (
+          <div className="absolute top-0 -right-1 text-slate-400">
+            <ExternalLink className="w-3.5 h-3.5" />
+          </div>
         )}
         <div 
           className="w-6 h-6 rounded flex items-center justify-center text-white"
