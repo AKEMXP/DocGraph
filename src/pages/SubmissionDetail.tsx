@@ -55,12 +55,26 @@ interface GraphLayoutProps {
   setGraphState: React.Dispatch<React.SetStateAction<GraphState>>;
 }
 
+function mergeNodesPreservingPositions(prev: Node[], next: Node[]): Node[] {
+  const prevById = new Map(prev.map(n => [n.id, n]));
+  return next.map(n => {
+    const p = prevById.get(n.id);
+    if (!p) return n;
+    return {
+      ...n,
+      position: p.position,
+      positionAbsolute: (p as any).positionAbsolute,
+    };
+  });
+}
+
 function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpdatedDocIds, submissionId, graphState, setGraphState }: GraphLayoutProps) {
   const navigate = useNavigate();
   const { fitView } = useReactFlow();
   const { expandedStudies, focusedId, highlightedEdge } = graphState;
   const isInitialMount = useRef(true);
   const previousExpandedRef = useRef(expandedStudies);
+  const [layoutLocked, setLayoutLocked] = useState(false);
 
   const toggleExpand = useCallback((studyId: string) => {
     setGraphState(prev => {
@@ -270,7 +284,9 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
   const [edgesState, setEdges, onEdgesChange] = useEdgesState(edges);
 
   useEffect(() => {
-    setNodes(initialNodes);
+    // If the user has manually positioned nodes, preserve those coordinates
+    // while still updating node data (focus/highlight/expanded state changes).
+    setNodes(prev => (layoutLocked ? mergeNodesPreservingPositions(prev, initialNodes) : initialNodes));
     setEdges(edges);
     
     if (isInitialMount.current) {
@@ -279,13 +295,32 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
     }
     
     previousExpandedRef.current = expandedStudies;
-  }, [initialNodes, edges, setNodes, setEdges, fitView, expandedStudies]);
+  }, [initialNodes, edges, setNodes, setEdges, fitView, expandedStudies, layoutLocked]);
+
+  const onNodesChangeWithLock = useCallback(
+    (changes: any[]) => {
+      // Any manual repositioning locks the layout so clicks/selection don't reset it.
+      if (changes.some(c => c?.type === 'position')) {
+        setLayoutLocked(true);
+      }
+      onNodesChange(changes as any);
+    },
+    [onNodesChange],
+  );
 
   const onNodeDoubleClick = useCallback((_: React.MouseEvent, node: Node) => {
     if (node.type === 'study') {
       navigate(`/submissions/${submissionId}/study/${node.id}`);
+      return;
     }
-  }, [navigate, submissionId]);
+
+    if (node.type === 'summaryDoc') {
+      const doc = summaryDocs.find(d => d.id === node.id);
+      if (doc?.type === 'cmc') {
+        navigate(`/submissions/${submissionId}/cmc`);
+      }
+    }
+  }, [navigate, submissionId, summaryDocs]);
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     const sourceStudy = studies.find(s => s.id === edge.source);
@@ -306,7 +341,7 @@ function GraphLayout({ studies, summaryDocs, crossStudyDocs, links, recentlyUpda
     <ReactFlow
       nodes={nodes}
       edges={edgesState}
-      onNodesChange={onNodesChange}
+      onNodesChange={onNodesChangeWithLock}
       onEdgesChange={onEdgesChange}
       onNodeDoubleClick={onNodeDoubleClick}
       onEdgeClick={onEdgeClick}

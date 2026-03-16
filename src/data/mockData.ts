@@ -65,6 +65,18 @@ export const submissions: Submission[] = [
     documentCount: 132,
     writingProjectCount: 7,
   },
+  {
+    id: 'sub-5',
+    name: 'Sanofi',
+    status: 'in_progress',
+    drugName: 'Tremfya',
+    submissionType: 'MAA',
+    targetDate: '2025-04-20',
+    createdAt: '2024-11-08',
+    updatedAt: '2025-03-10',
+    documentCount: 14,
+    writingProjectCount: 5,
+  },
 ];
 
 export interface RecentDocument {
@@ -1090,6 +1102,53 @@ export const getStudies = (submissionId: string): Study[] => {
       },
     ];
   }
+
+  if (submissionId === 'sub-5') {
+    return [
+      {
+        id: 'study-501',
+        studyId: 'SAN-501',
+        name: 'Phase 3 Pivotal Efficacy and Safety Study',
+        phase: 'Phase 3',
+        studyType: 'pivotal',
+        status: 'completed',
+        color: studyColors[0],
+        documents: {
+          protocol: {
+            id: 'doc-protocol-501',
+            name: 'Protocol SAN-501-001',
+            shortName: 'Protocol',
+            type: 'protocol',
+            status: 'final',
+            version: '1.3',
+            supportingDocs: [{ id: 'sp-501a', name: 'Protocol Amendment 1', type: 'Amendment' }],
+            veevaSync: 'synced',
+            veevaDocId: 'VV-DOC-501-PROT',
+            localPath: '/documents/SAN-501/Protocol_v1.3.docx',
+          },
+          csr: {
+            id: 'doc-csr-501',
+            name: 'CSR SAN-501-001',
+            shortName: 'CSR',
+            type: 'csr',
+            status: 'in_review',
+            version: '1.0',
+            supportingDocs: [
+              { id: 'sc-501a', name: 'Efficacy Tables', type: 'TFLs' },
+              { id: 'sc-501b', name: 'Safety Tables', type: 'TFLs' },
+            ],
+            veevaSync: 'syncing',
+            veevaDocId: 'VV-DOC-501-CSR',
+            localPath: '/documents/SAN-501/CSR_v1.0.docx',
+          },
+        },
+        operationalDocs: [
+          { id: 'op-icf-master-501', name: 'Informed Consent Form (Master)', shortName: 'ICF Master', type: 'icf', status: 'approved', version: '2.0', veevaSync: 'synced', veevaDocId: 'VV-DOC-501-ICF-M', localPath: '/documents/SAN-501/ICF_Master_v2.0.docx' },
+          { id: 'op-icf-local-501', name: 'Informed Consent Form (Localized)', shortName: 'ICF Localized', type: 'icf', status: 'approved', version: '2.0', veevaSync: 'synced', veevaDocId: 'VV-DOC-501-ICF-L', localPath: '/documents/SAN-501/ICF_Localized_DE_v2.0.docx' },
+        ],
+      },
+    ];
+  }
   
   return [];
 };
@@ -1271,6 +1330,50 @@ export const getSummaryDocuments = (submissionId: string): SummaryDocument[] => 
       },
     ];
   }
+
+  if (submissionId === 'sub-5') {
+    return [
+      {
+        id: 'doc-273-5',
+        name: 'Clinical Summary (2.7.3)',
+        shortName: 'Clinical Summary',
+        type: 'clinical_summary',
+        status: 'draft',
+        version: '0.4',
+        color: summaryDocColors.clinical_summary,
+        supportingDocs: [],
+        veevaSync: 'syncing',
+        localPath: '/documents/SAN-501/Module2/2.7.3_Clinical_Efficacy_v0.4.docx',
+      },
+      {
+        id: 'doc-274-5',
+        name: 'Clinical Overview (2.7.4)',
+        shortName: 'Clinical Overview',
+        type: 'clinical_summary',
+        status: 'draft',
+        version: '0.4',
+        color: summaryDocColors.clinical_summary,
+        supportingDocs: [],
+        veevaSync: 'syncing',
+        localPath: '/documents/SAN-501/Module2/2.7.4_Clinical_Safety_v0.4.docx',
+      },
+      {
+        id: 'doc-cmc-5',
+        name: 'Quality Overall Summary (2.3)',
+        shortName: 'CMC / QOS',
+        type: 'cmc',
+        status: 'in_review',
+        version: '1.2',
+        color: summaryDocColors.cmc,
+        supportingDocs: [
+          { id: 'sm-5a', name: 'Drug Substance (3.2.S)', type: 'Module 3' },
+          { id: 'sm-5b', name: 'Drug Product (3.2.P)', type: 'Module 3' },
+        ],
+        veevaSync: 'synced',
+        localPath: '/documents/SAN-501/Module2/CMC_QOS_v1.2.docx',
+      },
+    ];
+  }
   
   return [];
 };
@@ -1353,6 +1456,26 @@ export const getDocumentLinks = (submissionId: string): DocumentLink[] => {
     return [
       // Single study informs IB (IND only has one study typically)
       { id: 'link-301', sourceId: 'study-301', targetId: 'doc-ib-3', relationshipType: 'informs' },
+    ];
+  }
+
+  if (submissionId === 'sub-5') {
+    return [
+      { id: 'link-501', sourceId: 'study-501', targetId: 'doc-273-5', relationshipType: 'summarizes' },
+      { id: 'link-502', sourceId: 'study-501', targetId: 'doc-274-5', relationshipType: 'summarizes' },
+      { id: 'link-503', sourceId: 'doc-cmc-5', targetId: 'doc-273-5', relationshipType: 'informs' },
+      { id: 'link-504', sourceId: 'doc-cmc-5', targetId: 'doc-274-5', relationshipType: 'informs' },
+
+      // Labeling (SmPC/USPI) summarize CSR and clinical summaries, informed by CMC
+      { id: 'link-505', sourceId: 'doc-273-5', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
+      { id: 'link-506', sourceId: 'doc-274-5', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
+      { id: 'link-507', sourceId: 'doc-csr-501', targetId: 'doc-smpc-5', relationshipType: 'summarizes' },
+      { id: 'link-508', sourceId: 'doc-cmc-5', targetId: 'doc-smpc-5', relationshipType: 'informs' },
+
+      { id: 'link-509', sourceId: 'doc-273-5', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
+      { id: 'link-510', sourceId: 'doc-274-5', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
+      { id: 'link-511', sourceId: 'doc-csr-501', targetId: 'doc-uspi-5', relationshipType: 'summarizes' },
+      { id: 'link-512', sourceId: 'doc-cmc-5', targetId: 'doc-uspi-5', relationshipType: 'informs' },
     ];
   }
   
@@ -1564,7 +1687,7 @@ export const getSectionMappings = (sourceType: string, targetType: string): { so
   return [];
 };
 
-export type CrossStudyDocType = 'sae_form' | 'monitoring_plan' | 'dsmb_charter';
+export type CrossStudyDocType = 'sae_form' | 'monitoring_plan' | 'dsmb_charter' | 'labeling';
 
 export interface CrossStudyDocument {
   id: string;
@@ -1580,6 +1703,7 @@ export const crossStudyDocLabels: Record<CrossStudyDocType, string> = {
   sae_form: 'SAE Report Form',
   monitoring_plan: 'Monitoring Plan',
   dsmb_charter: 'DSMB Charter',
+  labeling: 'CCDS / Labeling',
 };
 
 export const getCrossStudyDocuments = (submissionId: string): CrossStudyDocument[] => {
@@ -1657,6 +1781,29 @@ export const getCrossStudyDocuments = (submissionId: string): CrossStudyDocument
         status: 'draft',
         version: '1.0',
         color: '#ef4444',
+      },
+    ];
+  }
+
+  if (submissionId === 'sub-5') {
+    return [
+      {
+        id: 'doc-smpc-5',
+        name: 'Summary of Product Characteristics (SmPC)',
+        shortName: 'SmPC',
+        type: 'labeling',
+        status: 'in_review',
+        version: '1.0',
+        color: '#0ea5e9',
+      },
+      {
+        id: 'doc-uspi-5',
+        name: 'US Prescribing Information (USPI)',
+        shortName: 'USPI',
+        type: 'labeling',
+        status: 'draft',
+        version: '0.9',
+        color: '#0ea5e9',
       },
     ];
   }

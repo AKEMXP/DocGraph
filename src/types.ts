@@ -19,7 +19,7 @@ export interface Submission {
   name: string;
   status: 'draft' | 'in_progress' | 'under_review' | 'submitted' | 'archived';
   drugName: string;
-  submissionType: 'NDA' | 'BLA' | 'ANDA' | 'IND';
+  submissionType: 'NDA' | 'BLA' | 'ANDA' | 'IND' | 'MAA';
   targetDate: string;
   createdAt: string;
   updatedAt: string;

@@ -5,6 +5,7 @@ import { Submissions } from './pages/Submissions';
 import { SubmissionDetail } from './pages/SubmissionDetail';
 import { SectionRelationship } from './pages/SectionRelationship';
 import { StudyDocuments } from './pages/StudyDocuments';
+import { CmcDocuments } from './pages/CmcDocuments';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/submissions/:submissionId/sections" element={<SectionRelationship />} />
           <Route path="/submissions/:submissionId/study/:studyId" element={<StudyDocuments />} />
           <Route path="/submissions/:submissionId/study/:studyId/sections" element={<SectionRelationship />} />
+          <Route path="/submissions/:submissionId/cmc" element={<CmcDocuments />} />
         </Routes>
       </Layout>
     </BrowserRouter>

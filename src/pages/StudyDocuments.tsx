@@ -311,6 +311,19 @@ const nodeTypes = {
   opDocument: OpDocNode,
 };
 
+function mergeNodesPreservingPositions(prev: Node[], next: Node[]): Node[] {
+  const prevById = new Map(prev.map(n => [n.id, n]));
+  return next.map(n => {
+    const p = prevById.get(n.id);
+    if (!p) return n;
+    return {
+      ...n,
+      position: p.position,
+      positionAbsolute: (p as any).positionAbsolute,
+    };
+  });
+}
+
 interface PendingUpdatesModalProps {
   docName: string;
   updates: PendingUpdate[];
@@ -382,6 +395,7 @@ export function StudyDocuments() {
   const navigate = useNavigate();
   const [selectedUpdates, setSelectedUpdates] = useState<{ docName: string; updates: PendingUpdate[] } | null>(null);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [layoutLocked, setLayoutLocked] = useState(false);
   
   const submission = submissions.find(s => s.id === submissionId);
   
@@ -652,10 +666,20 @@ export function StudyDocuments() {
   
   // Update nodes and edges when focusedId changes
   useEffect(() => {
-    setNodes(initialNodes);
+    setNodes(prev => (layoutLocked ? mergeNodesPreservingPositions(prev, initialNodes) : initialNodes));
     setEdges(initialEdges);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialNodes, initialEdges]);
+  }, [initialNodes, initialEdges, layoutLocked]);
+
+  const onNodesChangeWithLock = useCallback(
+    (changes: any[]) => {
+      if (changes.some(c => c?.type === 'position')) {
+        setLayoutLocked(true);
+      }
+      onNodesChange(changes as any);
+    },
+    [onNodesChange],
+  );
 
   const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
     if (edge.id === 'protocol-sap' || edge.id === 'sap-csr') {
@@ -717,7 +741,7 @@ export function StudyDocuments() {
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
+          onNodesChange={onNodesChangeWithLock}
           onEdgesChange={onEdgesChange}
           onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes}
