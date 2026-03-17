@@ -6,11 +6,14 @@ export function Dashboard() {
   const docsWithPendingUpdates = getDocumentsWithPendingUpdates();
   const pendingUpdatesCount = docsWithPendingUpdates.reduce((acc, doc) => acc + doc.pendingUpdates.length, 0);
   const totalDocuments = getTotalDocumentCount();
+  const activeSubmissionsCount = submissions.filter(
+    s => ['in_progress', 'under_review', 'draft'].includes(s.status)
+  ).length;
 
   const stats = [
     {
       label: 'Active Submissions',
-      value: organization.submissionsInProgress,
+      value: activeSubmissionsCount,
       icon: FileStack,
       color: 'bg-blue-500',
     },

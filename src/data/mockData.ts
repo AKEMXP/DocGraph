@@ -18,6 +18,18 @@ export const users: User[] = [
 
 export const submissions: Submission[] = [
   {
+    id: 'sub-5',
+    name: 'Sanofi',
+    status: 'in_progress',
+    drugName: 'Tremfya',
+    submissionType: 'MAA',
+    targetDate: '2025-04-20',
+    createdAt: '2024-11-08',
+    updatedAt: '2025-03-10',
+    documentCount: 14,
+    writingProjectCount: 5,
+  },
+  {
     id: 'sub-1',
     name: 'NDA-2024-001 Oncology Treatment',
     status: 'in_progress',
@@ -28,18 +40,6 @@ export const submissions: Submission[] = [
     updatedAt: '2024-03-10',
     documentCount: 156,
     writingProjectCount: 8,
-  },
-  {
-    id: 'sub-2',
-    name: 'BLA-2024-003 Immunotherapy',
-    status: 'under_review',
-    drugName: 'ImmunoGen-X',
-    submissionType: 'BLA',
-    targetDate: '2024-09-30',
-    createdAt: '2023-08-20',
-    updatedAt: '2024-03-08',
-    documentCount: 203,
-    writingProjectCount: 12,
   },
   {
     id: 'sub-3',
@@ -64,18 +64,6 @@ export const submissions: Submission[] = [
     updatedAt: '2022-01-05',
     documentCount: 132,
     writingProjectCount: 7,
-  },
-  {
-    id: 'sub-5',
-    name: 'Sanofi',
-    status: 'in_progress',
-    drugName: 'Tremfya',
-    submissionType: 'MAA',
-    targetDate: '2025-04-20',
-    createdAt: '2024-11-08',
-    updatedAt: '2025-03-10',
-    documentCount: 14,
-    writingProjectCount: 5,
   },
 ];
 
@@ -107,15 +95,6 @@ export const recentDocuments: RecentDocument[] = [
     submissionId: 'sub-1',
     lastEditedAt: '2024-03-12T11:15:00',
     status: 'draft',
-  },
-  {
-    id: 'doc-protocol-201',
-    name: 'Protocol IMX-201-001',
-    type: 'Protocol',
-    submissionName: 'BLA-2024-003',
-    submissionId: 'sub-2',
-    lastEditedAt: '2024-03-11T16:45:00',
-    status: 'final',
   },
   {
     id: 'doc-sap-301',
@@ -215,17 +194,6 @@ export const qcIssues: QCIssue[] = [
     detectedAt: '2024-03-10T11:30:00',
   },
   {
-    id: 'qc-6',
-    documentId: 'doc-clinical-overview-2',
-    documentName: 'Clinical Overview',
-    submissionId: 'sub-2',
-    type: 'inconsistency',
-    severity: 'major',
-    description: 'Dosing regimen inconsistent with approved labeling',
-    section: '2.5.1 Product Development Rationale',
-    detectedAt: '2024-03-10T10:15:00',
-  },
-  {
     id: 'qc-7',
     documentId: 'doc-protocol-301',
     documentName: 'Protocol NC-301',
@@ -267,12 +235,10 @@ export interface DocumentWithPendingUpdate {
 
 export const getDocumentsWithPendingUpdates = (): DocumentWithPendingUpdate[] => {
   const docs: DocumentWithPendingUpdate[] = [];
-  
-  const submissionList = [
-    { id: 'sub-1', name: 'NDA-2024-001' },
-    { id: 'sub-2', name: 'BLA-2024-003' },
-    { id: 'sub-3', name: 'IND-2024-007' },
-  ];
+  const activeSubmissions = submissions.filter(
+    s => ['in_progress', 'under_review', 'draft'].includes(s.status)
+  );
+  const submissionList = activeSubmissions.map(s => ({ id: s.id, name: s.name }));
   
   submissionList.forEach(sub => {
     const studies = getStudies(sub.id);
@@ -872,192 +838,6 @@ export const getStudies = (submissionId: string): Study[] => {
       },
     ];
   }
-  
-  if (submissionId === 'sub-2') {
-    return [
-      {
-        id: 'study-201',
-        studyId: 'IMX-201',
-        name: 'Phase 3 Pivotal Study',
-        phase: 'Phase 3',
-        studyType: 'pivotal',
-        status: 'completed',
-        color: '#0ea5e9',
-        documents: {
-          protocol: {
-            id: 'doc-protocol-201',
-            name: 'Protocol IMX-201-001',
-            shortName: 'Protocol',
-            type: 'protocol',
-            status: 'final',
-            version: '3.0',
-            supportingDocs: [
-              { id: 'sp-201a', name: 'Protocol Amendment 1', type: 'Amendment' },
-              { id: 'sp-201b', name: 'Protocol Amendment 2', type: 'Amendment' },
-            ],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-201/Protocol_v3.0.docx',
-          },
-          sap: {
-            id: 'doc-sap-201',
-            name: 'SAP IMX-201-001',
-            shortName: 'SAP',
-            type: 'sap',
-            status: 'final',
-            version: '2.0',
-            supportingDocs: [],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-201/SAP_v2.0.docx',
-          },
-          csr: {
-            id: 'doc-csr-201',
-            name: 'CSR IMX-201-001',
-            shortName: 'CSR',
-            type: 'csr',
-            status: 'approved',
-            version: '1.0',
-            supportingDocs: [
-              { id: 'sc-201a', name: 'Efficacy Tables', type: 'TFLs' },
-              { id: 'sc-201b', name: 'Safety Tables', type: 'TFLs' },
-            ],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-201/CSR_v1.0.docx',
-          },
-        },
-        operationalDocs: [
-          { id: 'op-icf-201', name: 'Informed Consent Form', shortName: 'ICF', type: 'icf', status: 'approved', version: '3.0', veevaSync: 'synced', localPath: '/documents/IMX-201/ICF_v3.0.docx' },
-          { id: 'op-pis-201', name: 'Patient Information Sheet', shortName: 'PIS', type: 'pis', status: 'approved', version: '3.0', veevaSync: 'synced', localPath: '/documents/IMX-201/PIS_v3.0.docx' },
-        ],
-      },
-      {
-        id: 'study-202',
-        studyId: 'IMX-202',
-        name: 'Phase 2 Dose-Finding Study',
-        phase: 'Phase 2',
-        studyType: 'dose_finding',
-        status: 'completed',
-        color: '#8b5cf6',
-        documents: {
-          protocol: {
-            id: 'doc-protocol-202',
-            name: 'Protocol IMX-202-001',
-            shortName: 'Protocol',
-            type: 'protocol',
-            status: 'final',
-            version: '1.0',
-            supportingDocs: [],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-202/Protocol_v1.0.docx',
-          },
-          sap: {
-            id: 'doc-sap-202',
-            name: 'SAP IMX-202-001',
-            shortName: 'SAP',
-            type: 'sap',
-            status: 'final',
-            version: '1.0',
-            supportingDocs: [],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-202/SAP_v1.0.docx',
-          },
-          csr: {
-            id: 'doc-csr-202',
-            name: 'CSR IMX-202-001',
-            shortName: 'CSR',
-            type: 'csr',
-            status: 'final',
-            version: '1.0',
-            supportingDocs: [
-              { id: 'sc-202a', name: 'Dose Response Analysis', type: 'Analysis' },
-            ],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-202/CSR_v1.0.docx',
-          },
-        },
-        operationalDocs: [
-          { id: 'op-icf-202', name: 'Informed Consent Form', shortName: 'ICF', type: 'icf', status: 'final', version: '1.0', veevaSync: 'synced', localPath: '/documents/IMX-202/ICF_v1.0.docx' },
-        ],
-      },
-      {
-        id: 'study-203',
-        studyId: 'IMX-203',
-        name: 'Phase 1 First-in-Human',
-        phase: 'Phase 1',
-        studyType: 'pk',
-        status: 'completed',
-        color: '#f59e0b',
-        documents: {
-          protocol: {
-            id: 'doc-protocol-203',
-            name: 'Protocol IMX-203-001',
-            shortName: 'Protocol',
-            type: 'protocol',
-            status: 'final',
-            version: '1.0',
-            supportingDocs: [],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-203/Protocol_v1.0.docx',
-          },
-          csr: {
-            id: 'doc-csr-203',
-            name: 'CSR IMX-203-001',
-            shortName: 'CSR',
-            type: 'csr',
-            status: 'final',
-            version: '1.0',
-            supportingDocs: [
-              { id: 'sc-203a', name: 'PK Analysis', type: 'Analysis' },
-            ],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-203/CSR_v1.0.docx',
-          },
-        },
-        operationalDocs: [
-          { id: 'op-icf-203', name: 'Informed Consent Form', shortName: 'ICF', type: 'icf', status: 'final', version: '1.0', veevaSync: 'synced', localPath: '/documents/IMX-203/ICF_v1.0.docx' },
-        ],
-      },
-      {
-        id: 'study-204',
-        studyId: 'IMX-204',
-        name: 'Long-term Safety Extension',
-        phase: 'Phase 3',
-        studyType: 'safety',
-        status: 'ongoing',
-        color: '#ef4444',
-        documents: {
-          protocol: {
-            id: 'doc-protocol-204',
-            name: 'Protocol IMX-204-001',
-            shortName: 'Protocol',
-            type: 'protocol',
-            status: 'final',
-            version: '2.0',
-            supportingDocs: [
-              { id: 'sp-204a', name: 'Protocol Amendment 1', type: 'Amendment' },
-            ],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-204/Protocol_v2.0.docx',
-          },
-          sap: {
-            id: 'doc-sap-204',
-            name: 'SAP IMX-204-001',
-            shortName: 'SAP',
-            type: 'sap',
-            status: 'approved',
-            version: '1.0',
-            supportingDocs: [],
-            veevaSync: 'synced',
-            localPath: '/documents/IMX-204/SAP_v1.0.docx',
-          },
-        },
-        operationalDocs: [
-          { id: 'op-icf-204', name: 'Informed Consent Form', shortName: 'ICF', type: 'icf', status: 'approved', version: '2.0', veevaSync: 'synced', localPath: '/documents/IMX-204/ICF_v2.0.docx' },
-          { id: 'op-crf-204', name: 'Case Report Form', shortName: 'CRF', type: 'crf', status: 'approved', version: '1.0', veevaSync: 'synced', localPath: '/documents/IMX-204/CRF_v1.0.docx' },
-        ],
-      },
-    ];
-  }
-  
   if (submissionId === 'sub-3') {
     return [
       {
@@ -1247,80 +1027,6 @@ export const getSummaryDocuments = (submissionId: string): SummaryDocument[] => 
       },
     ];
   }
-  
-  if (submissionId === 'sub-2') {
-    return [
-      {
-        id: 'doc-ib-2',
-        name: 'Investigator Brochure',
-        shortName: 'IB',
-        type: 'ib',
-        status: 'approved',
-        version: '8.0',
-        color: summaryDocColors.ib,
-        supportingDocs: [
-          { id: 'si-2a', name: 'IB Supplement - Immunogenicity', type: 'Supplement' },
-        ],
-        veevaSync: 'synced',
-        localPath: '/documents/IMX/Module2/IB_v8.0.docx',
-      },
-      {
-        id: 'doc-nonclinical-2',
-        name: 'Nonclinical Overview (2.4)',
-        shortName: 'Nonclinical Overview',
-        type: 'nonclinical',
-        status: 'approved',
-        version: '1.0',
-        color: summaryDocColors.nonclinical,
-        supportingDocs: [],
-        veevaSync: 'synced',
-        localPath: '/documents/IMX/Module2/Nonclinical_v1.0.docx',
-      },
-      {
-        id: 'doc-cmc-2',
-        name: 'Quality Overall Summary (2.3)',
-        shortName: 'CMC / QOS',
-        type: 'cmc',
-        status: 'approved',
-        version: '3.0',
-        color: summaryDocColors.cmc,
-        supportingDocs: [
-          { id: 'sm-2a', name: 'Drug Substance (3.2.S)', type: 'Module 3' },
-          { id: 'sm-2b', name: 'Drug Product (3.2.P)', type: 'Module 3' },
-        ],
-        veevaSync: 'synced',
-        localPath: '/documents/IMX/Module2/CMC_QOS_v3.0.docx',
-      },
-      {
-        id: 'doc-clinical-overview-2',
-        name: 'Clinical Overview (2.5)',
-        shortName: 'Clinical Overview',
-        type: 'clinical_overview',
-        status: 'in_review',
-        version: '1.0',
-        color: summaryDocColors.clinical_overview,
-        supportingDocs: [],
-        veevaSync: 'synced',
-        localPath: '/documents/IMX/Module2/Clinical_Overview_v1.0.docx',
-      },
-      {
-        id: 'doc-clinical-summary-2',
-        name: 'Clinical Summary (2.7)',
-        shortName: 'Clinical Summary',
-        type: 'clinical_summary',
-        status: 'in_review',
-        version: '1.0',
-        color: summaryDocColors.clinical_summary,
-        supportingDocs: [],
-        veevaSync: 'pending_upload',
-        localPath: '/documents/IMX/Module2/Clinical_Summary_v1.0.docx',
-        pendingUpdates: [
-          { sourceDocId: 'doc-csr-204', sourceDocName: 'CSR IMX-204', sourceSection: '12. Safety Evaluation', targetSection: '2.7.4. Summary of Clinical Safety', changeType: 'added', changedAt: '2024-03-05' },
-        ],
-      },
-    ];
-  }
-  
   if (submissionId === 'sub-3') {
     return [
       {
@@ -1450,38 +1156,6 @@ export const getDocumentLinks = (submissionId: string): DocumentLink[] => {
       { id: 'link-20', sourceId: 'doc-cmc', targetId: 'doc-clinical-overview', relationshipType: 'informs' },
     ];
   }
-  
-  if (submissionId === 'sub-2') {
-    return [
-      // Pivotal study informs IB
-      { id: 'link-201', sourceId: 'study-201', targetId: 'doc-ib-2', relationshipType: 'informs' },
-      
-      // Dose finding study informs IB
-      { id: 'link-202', sourceId: 'study-202', targetId: 'doc-ib-2', relationshipType: 'informs' },
-      
-      // PK study informs IB
-      { id: 'link-203', sourceId: 'study-203', targetId: 'doc-ib-2', relationshipType: 'informs' },
-      
-      // Safety extension informs IB
-      { id: 'link-204', sourceId: 'study-204', targetId: 'doc-ib-2', relationshipType: 'informs' },
-      
-      // IB informs nonclinical
-      { id: 'link-205', sourceId: 'doc-ib-2', targetId: 'doc-nonclinical-2', relationshipType: 'informs' },
-      
-      // Studies summarized in Clinical Overview & Summary
-      { id: 'link-206', sourceId: 'study-201', targetId: 'doc-clinical-overview-2', relationshipType: 'summarizes' },
-      { id: 'link-207', sourceId: 'study-202', targetId: 'doc-clinical-overview-2', relationshipType: 'summarizes' },
-      { id: 'link-208', sourceId: 'study-201', targetId: 'doc-clinical-summary-2', relationshipType: 'summarizes' },
-      { id: 'link-209', sourceId: 'study-202', targetId: 'doc-clinical-summary-2', relationshipType: 'summarizes' },
-      { id: 'link-210', sourceId: 'study-203', targetId: 'doc-clinical-summary-2', relationshipType: 'summarizes' },
-      { id: 'link-211', sourceId: 'study-204', targetId: 'doc-clinical-summary-2', relationshipType: 'summarizes' },
-      
-      // Nonclinical and CMC inform Clinical Overview
-      { id: 'link-212', sourceId: 'doc-nonclinical-2', targetId: 'doc-clinical-overview-2', relationshipType: 'informs' },
-      { id: 'link-213', sourceId: 'doc-cmc-2', targetId: 'doc-clinical-overview-2', relationshipType: 'informs' },
-    ];
-  }
-  
   if (submissionId === 'sub-3') {
     return [
       // Single study informs IB (IND only has one study typically)
@@ -1759,39 +1433,6 @@ export const getCrossStudyDocuments = (submissionId: string): CrossStudyDocument
       },
     ];
   }
-  
-  if (submissionId === 'sub-2') {
-    return [
-      {
-        id: 'doc-sae-form-2',
-        name: 'SAE Report Form',
-        shortName: 'SAE Form',
-        type: 'sae_form',
-        status: 'approved',
-        version: '3.0',
-        color: '#ef4444',
-      },
-      {
-        id: 'doc-monitoring-2',
-        name: 'Monitoring Plan',
-        shortName: 'Monitoring Plan',
-        type: 'monitoring_plan',
-        status: 'approved',
-        version: '2.0',
-        color: '#059669',
-      },
-      {
-        id: 'doc-dsmb-2',
-        name: 'DSMB Charter',
-        shortName: 'DSMB Charter',
-        type: 'dsmb_charter',
-        status: 'approved',
-        version: '1.0',
-        color: '#dc2626',
-      },
-    ];
-  }
-  
   if (submissionId === 'sub-3') {
     return [
       {

@@ -517,7 +517,7 @@ export function SubmissionDetail() {
   const majorCount = qcIssues.filter(i => i.severity === 'major').length;
   const minorCount = qcIssues.filter(i => i.severity === 'minor').length;
 
-  // Simple upstream suggestions: protocols / SAPs / CSRs from this submission
+  // Upstream suggestions: protocols / SAPs / CSRs / summary / cross-study docs
   const supportingOptions: SupportingDocOption[] = useMemo(() => {
     const opts: SupportingDocOption[] = [];
     studies.forEach(study => {
@@ -526,8 +526,10 @@ export function SubmissionDetail() {
       if (sap) opts.push({ id: sap.id, label: sap.name, type: 'SAP' });
       if (csr) opts.push({ id: csr.id, label: csr.name, type: 'CSR' });
     });
+    summaryDocs.forEach(d => opts.push({ id: d.id, label: d.name, type: d.shortName }));
+    crossStudyDocs.forEach(d => opts.push({ id: d.id, label: d.name, type: d.shortName }));
     return opts;
-  }, [studies]);
+  }, [studies, summaryDocs, crossStudyDocs]);
 
   if (!submission) {
     return (
